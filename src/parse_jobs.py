@@ -202,6 +202,14 @@ def parse_metadata_row(row: dict) -> dict:
     deadline = extract_deadline(text)
     email = extract_email(text)
 
+    source_page_url = (
+        row.get("source_page_url")
+        or row.get("source_url")
+        or "https://www.uni-due.de/stellenmarkt/werkstudenten.shtml#shkjobs"
+    )
+
+    pdf_url = row.get("pdf_url", "")
+
     return {
         "Source": row.get("source_name", ""),
         "Title": guess_title(text, rss_title),
@@ -211,8 +219,8 @@ def parse_metadata_row(row: dict) -> dict:
         "Status": get_opportunity_status(deadline),
         "Contact": email,
         "Published": row.get("published", ""),
-        "Source Page": make_hyperlink(row.get("source_page_url", ""), "Open source page"),
-        "PDF": make_hyperlink(row.get("pdf_url", ""), "Open PDF"),
+        "Source Page": make_hyperlink(source_page_url, "Open source page"),
+        "PDF": make_hyperlink(pdf_url, "Open PDF"),
         "Note": make_public_note(deadline, email, text),
         "Summary": make_summary(text),
     }

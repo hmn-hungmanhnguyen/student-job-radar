@@ -78,7 +78,7 @@ def write_metadata(rows: list[dict]) -> None:
     fieldnames = [
         "source_name",
         "rss_title",
-        "source_url",
+        "source_page_url",
         "pdf_url",
         "published",
         "pdf_file",
@@ -100,6 +100,7 @@ def main():
     for source in sources:
         source_name = source["name"]
         feed_url = source["url"]
+        source_page_url = source.get("page_url", feed_url)
 
         print("=" * 80)
         print(f"Reading source: {source_name}")
@@ -111,7 +112,7 @@ def main():
 
         for entry in feed.entries:
             rss_title = entry.get("title", "")
-            source_url = entry.get("link", "")
+            source_page_url = source.get("page_url", feed_url)
             published = entry.get("published", "")
 
             print("\nJob:", rss_title)
@@ -130,7 +131,7 @@ def main():
                     {
                         "source_name": source_name,
                         "rss_title": rss_title,
-                        "source_url": source_url,
+                        "source_page_url": source_page_url,
                         "pdf_url": pdf_url,
                         "published": published,
                         "pdf_file": pdf_path.name,
