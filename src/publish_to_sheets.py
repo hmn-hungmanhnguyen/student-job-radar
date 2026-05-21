@@ -1,5 +1,7 @@
 from pathlib import Path
 import csv
+import json
+import os
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -10,10 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 CSV_FILE = ROOT_DIR / "data" / "jobs.csv"
 SERVICE_ACCOUNT_FILE = ROOT_DIR / "service_account.json"
 
-# Copy this from your Google Sheets URL:
-# https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit...
-SPREADSHEET_ID = "12DHXo1gfbXLHJl6y_2v1AzLuqhfd1qFVlCPZk9XtjJ0"
-
+SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID", "PASTE_YOUR_SPREADSHEET_ID_HERE")
 WORKSHEET_NAME = "Public Jobs"
 
 SCOPES = [
@@ -30,10 +29,19 @@ def load_csv_rows() -> list[list[str]]:
 
 
 def get_client():
-    credentials = Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=SCOPES,
-    )
+    service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+
+    if service_account_json:
+        service_account_info = json.loads(service_account_json)
+        credentials = Credentials.from_service_account_info(
+            service_account_info,
+            scopes=SCOPES,
+        )
+    else:
+        credentials = Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE,
+            scopes=SCOPES,
+        )
 
     return gspread.authorize(credentials)
 
@@ -60,7 +68,6 @@ def main():
     worksheet.clear()
     worksheet.update(values=rows, range_name="A1")
 
-    # Basic public-sheet formatting
     worksheet.freeze(rows=1)
     worksheet.format(
         "A1:L1",
