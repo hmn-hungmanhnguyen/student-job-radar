@@ -1,0 +1,10 @@
+{
+  "sources": [
+    {
+      "name": "UDE SHK Stellenmarkt",
+      "type": "rss",
+      "url": "https://www.uni-due.de/stellenmarkt/shk_an_der_ude.rss",
+      "enabled": true
+    }
+  ]
+}

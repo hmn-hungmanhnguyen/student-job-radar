@@ -17,8 +17,8 @@ token.json
 # Generated data
 data/pdfs/
 data/text/
-data/jobs.csv
-data/jobs.xlsx
+data/*.csv
+data/*.xlsx
 
 # OS/editor junk
 .DS_Store

@@ -12,6 +12,7 @@ PIPELINE_STEPS = [
     "extract_pdf_text.py",
     "parse_jobs.py",
     "export_excel.py",
+    "publish_to_sheets.py",
 ]
 
 

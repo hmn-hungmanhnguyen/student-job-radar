@@ -4,17 +4,23 @@ import re
 from datetime import datetime, date
 
 
-TEXT_DIR = Path("data/text")
-OUTPUT_FILE = Path("data/jobs.csv")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+TEXT_DIR = ROOT_DIR / "data" / "text"
+METADATA_FILE = ROOT_DIR / "data" / "job_metadata.csv"
+OUTPUT_FILE = ROOT_DIR / "data" / "jobs.csv"
 
 
 def read_text_file(path: Path) -> str:
+    if not path.exists():
+        return ""
+
     return path.read_text(encoding="utf-8", errors="replace")
 
 
 def clean_text(text: str) -> str:
     replacements = {
-        "\u00ad": "",      # soft hyphen
+        "\u00ad": "",
         "–": "-",
         "—": "-",
         "\t": " ",
@@ -23,10 +29,10 @@ def clean_text(text: str) -> str:
     for old, new in replacements.items():
         text = text.replace(old, new)
 
-    # Remove page markers created by extract_pdf_text.py
+    # Remove debug page markers from extraction step
     text = re.sub(r"---\s*Page\s*\d+\s*---", " ", text, flags=re.IGNORECASE)
 
-    # Collapse excessive whitespace
+    # Collapse whitespace
     text = re.sub(r"[ ]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
 
@@ -95,37 +101,31 @@ def get_opportunity_status(deadline: str) -> str:
     return "Open"
 
 
-def make_public_note(deadline: str, email: str) -> str:
-    notes = []
+def detect_job_type(text: str, rss_title: str) -> str:
+    combined = f"{rss_title}\n{text}".lower()
 
-    if not deadline:
-        notes.append("No deadline detected; check original PDF.")
+    if "studentische hilfskraft" in combined or "shk" in combined:
+        return "SHK"
+    if "hiwi" in combined:
+        return "HiWi"
+    if "werkstudent" in combined or "werkstudentin" in combined:
+        return "Werkstudent"
+    if "praktikum" in combined or "internship" in combined:
+        return "Internship"
 
-    if not email:
-        notes.append("No email detected; check original PDF.")
-
-    if not notes:
-        return "Automatically extracted from PDF."
-
-    return " ".join(notes)
+    return ""
 
 
-def guess_title(text: str) -> str:
+def guess_title(text: str, rss_title: str) -> str:
+    if rss_title:
+        return rss_title.strip()
+
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    lines = [line for line in lines if not line.startswith("--- Page")]
-
-    title_keywords = [
-        "studentische hilfskraft",
-        "studentische hilfskraft",
-        "shk",
-        "hiwi",
-        "werkstudent",
-        "werkstudentin",
-    ]
+    lines = [line for line in lines if not line.lower().startswith("--- page")]
 
     for line in lines[:40]:
         lower = line.lower()
-        if any(keyword in lower for keyword in title_keywords):
+        if any(word in lower for word in ["studentische hilfskraft", "shk", "hiwi", "werkstudent"]):
             return line
 
     for line in lines[:20]:
@@ -135,22 +135,7 @@ def guess_title(text: str) -> str:
     return ""
 
 
-def detect_job_type(text: str) -> str:
-    lower = text.lower()
-
-    if "studentische hilfskraft" in lower or "shk" in lower:
-        return "SHK"
-    if "hiwi" in lower:
-        return "HiWi"
-    if "werkstudent" in lower or "werkstudentin" in lower:
-        return "Werkstudent"
-    if "praktikum" in lower or "internship" in lower:
-        return "Internship"
-
-    return ""
-
-
-def make_preview(text: str, max_length: int = 350) -> str:
+def make_summary(text: str, max_length: int = 350) -> str:
     lines = []
 
     for line in text.splitlines():
@@ -170,45 +155,83 @@ def make_preview(text: str, max_length: int = 350) -> str:
     return one_line[:max_length]
 
 
-def parse_file(path: Path) -> dict:
-    raw_text = read_text_file(path)
+def make_public_note(deadline: str, email: str, text: str) -> str:
+    notes = []
+
+    if not text:
+        notes.append("PDF text could not be extracted.")
+
+    if not deadline:
+        notes.append("No deadline detected; check original PDF.")
+
+    if not email:
+        notes.append("No email detected; check original PDF.")
+
+    if not notes:
+        return "Automatically extracted from PDF."
+
+    return " ".join(notes)
+
+
+def load_metadata() -> list[dict]:
+    if not METADATA_FILE.exists():
+        raise FileNotFoundError(
+            f"Missing metadata file: {METADATA_FILE}. Run download_pdfs.py first."
+        )
+
+    with METADATA_FILE.open("r", newline="", encoding="utf-8") as file:
+        return list(csv.DictReader(file))
+
+
+def parse_metadata_row(row: dict) -> dict:
+    text_file = row.get("text_file", "")
+    text_path = TEXT_DIR / text_file
+
+    raw_text = read_text_file(text_path)
     text = clean_text(raw_text)
 
+    rss_title = row.get("rss_title", "")
     deadline = extract_deadline(text)
     email = extract_email(text)
 
     return {
-        "title": guess_title(text),
-        "job_type": detect_job_type(text),
+        "source_name": row.get("source_name", ""),
+        "title": guess_title(text, rss_title),
+        "job_type": detect_job_type(text, rss_title),
         "deadline": deadline,
         "days_until_deadline": get_days_until_deadline(deadline),
         "opportunity_status": get_opportunity_status(deadline),
         "email": email,
-        "source_file": path.name,
-        "public_note": make_public_note(deadline, email),
-        "summary": make_preview(text),
+        "published": row.get("published", ""),
+        "source_url": row.get("source_url", ""),
+        "pdf_url": row.get("pdf_url", ""),
+        "public_note": make_public_note(deadline, email, text),
+        "summary": make_summary(text),
     }
 
 
 def main():
-    text_files = sorted(TEXT_DIR.glob("*.txt"))
+    metadata_rows = load_metadata()
 
-    if not text_files:
-        print("No text files found in data/text.")
+    if not metadata_rows:
+        print("No metadata rows found.")
         return
 
-    jobs = [parse_file(path) for path in text_files]
+    jobs = [parse_metadata_row(row) for row in metadata_rows]
 
     fieldnames = [
+        "source_name",
         "title",
         "job_type",
         "deadline",
         "days_until_deadline",
         "opportunity_status",
         "email",
-        "source_file",
+        "published",
+        "source_url",
+        "pdf_url",
         "public_note",
-        "preview",
+        "summary",
     ]
 
     with OUTPUT_FILE.open("w", newline="", encoding="utf-8") as file:

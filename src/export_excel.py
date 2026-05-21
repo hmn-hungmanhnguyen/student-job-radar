@@ -5,8 +5,10 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment
 
 
-CSV_FILE = Path("data/jobs.csv")
-EXCEL_FILE = Path("data/jobs.xlsx")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+CSV_FILE = ROOT_DIR / "data" / "jobs.csv"
+EXCEL_FILE = ROOT_DIR / "data" / "jobs.xlsx"
 
 
 def main():
@@ -19,8 +21,8 @@ def main():
     if "days_until_deadline" in df.columns:
         df["sort_deadline"] = pd.to_numeric(df["days_until_deadline"], errors="coerce")
         df = df.sort_values(
-            by=["opportunity_status", "sort_deadline"],
-            ascending=[True, True],
+            by=["sort_deadline"],
+            ascending=True,
             na_position="last"
         )
         df = df.drop(columns=["sort_deadline"])
@@ -39,15 +41,18 @@ def main():
     sheet.auto_filter.ref = sheet.dimensions
 
     widths = {
-        "A": 65,   # title
-        "B": 16,   # job_type
-        "C": 18,   # deadline
-        "D": 20,   # days_until_deadline
-        "E": 22,   # opportunity_status
-        "F": 35,   # email
-        "G": 45,   # source_file
-        "H": 45,   # public_note
-        "I": 100,  # summary
+        "A": 25,   # source_name
+        "B": 70,   # title
+        "C": 16,   # job_type
+        "D": 18,   # deadline
+        "E": 20,   # days_until_deadline
+        "F": 22,   # opportunity_status
+        "G": 35,   # email
+        "H": 35,   # published
+        "I": 70,   # source_url
+        "J": 70,   # pdf_url
+        "K": 45,   # public_note
+        "L": 100,  # summary
     }
 
     for col, width in widths.items():
