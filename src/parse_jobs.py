@@ -182,6 +182,14 @@ def load_metadata() -> list[dict]:
     with METADATA_FILE.open("r", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
+def make_hyperlink(url: str, label: str) -> str:
+    if not url:
+        return ""
+
+    safe_url = url.replace('"', '""')
+    safe_label = label.replace('"', '""')
+
+    return f'=HYPERLINK("{safe_url}", "{safe_label}")'
 
 def parse_metadata_row(row: dict) -> dict:
     text_file = row.get("text_file", "")
@@ -195,18 +203,18 @@ def parse_metadata_row(row: dict) -> dict:
     email = extract_email(text)
 
     return {
-        "source_name": row.get("source_name", ""),
-        "title": guess_title(text, rss_title),
-        "job_type": detect_job_type(text, rss_title),
-        "deadline": deadline,
-        "days_until_deadline": get_days_until_deadline(deadline),
-        "opportunity_status": get_opportunity_status(deadline),
-        "email": email,
-        "published": row.get("published", ""),
-        "source_url": row.get("source_url", ""),
-        "pdf_url": row.get("pdf_url", ""),
-        "public_note": make_public_note(deadline, email, text),
-        "summary": make_summary(text),
+        "Source": row.get("source_name", ""),
+        "Title": guess_title(text, rss_title),
+        "Type": detect_job_type(text, rss_title),
+        "Deadline": deadline,
+        "Days Left": get_days_until_deadline(deadline),
+        "Status": get_opportunity_status(deadline),
+        "Contact": email,
+        "Published": row.get("published", ""),
+        "Source Page": make_hyperlink(row.get("source_page_url", ""), "Open source page"),
+        "PDF": make_hyperlink(row.get("pdf_url", ""), "Open PDF"),
+        "Note": make_public_note(deadline, email, text),
+        "Summary": make_summary(text),
     }
 
 
@@ -220,18 +228,18 @@ def main():
     jobs = [parse_metadata_row(row) for row in metadata_rows]
 
     fieldnames = [
-        "source_name",
-        "title",
-        "job_type",
-        "deadline",
-        "days_until_deadline",
-        "opportunity_status",
-        "email",
-        "published",
-        "source_url",
-        "pdf_url",
-        "public_note",
-        "summary",
+        "Source",
+        "Title",
+        "Type",
+        "Deadline",
+        "Days Left",
+        "Status",
+        "Contact",
+        "Published",
+        "Source Page",
+        "PDF",
+        "Note",
+        "Summary",
     ]
 
     with OUTPUT_FILE.open("w", newline="", encoding="utf-8") as file:
