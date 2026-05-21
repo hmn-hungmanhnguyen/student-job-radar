@@ -12,7 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 CSV_FILE = ROOT_DIR / "data" / "jobs.csv"
 SERVICE_ACCOUNT_FILE = ROOT_DIR / "service_account.json"
 
-SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID", "PASTE_YOUR_SPREADSHEET_ID_HERE")
+SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID") or "12DHXo1gfbXLHJl6y_2v1AzLuqhfd1qFVlCPZk9XtjJ0"
 WORKSHEET_NAME = "Public Jobs"
 
 SCOPES = [
@@ -66,7 +66,11 @@ def main():
         )
 
     worksheet.clear()
-    worksheet.update(values=rows, range_name="A1")
+    worksheet.update(
+    values=rows,
+    range_name="A1",
+    value_input_option="USER_ENTERED",
+    )
 
     worksheet.freeze(rows=1)
     worksheet.format(
