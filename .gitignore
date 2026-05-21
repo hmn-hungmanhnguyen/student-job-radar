@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment / secrets
+.env
+credentials.json
+service_account.json
+token.json
+
+# Generated data
+data/pdfs/
+data/text/
+data/jobs.csv
+data/jobs.xlsx
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
