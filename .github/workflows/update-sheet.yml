@@ -3,7 +3,7 @@ name: Update Google Sheet
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 5 * * *"
+  - cron: "17 3 * * *"
 
 jobs:
   update-sheet:
