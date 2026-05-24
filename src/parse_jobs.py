@@ -94,7 +94,7 @@ def get_opportunity_status(deadline: str) -> str:
     if days_left < 0:
         return "Expired"
     if days_left == 0:
-        return "Closing today"
+        return "Deadline today"
     if days_left <= 3:
         return "Closing soon"
 
@@ -135,24 +135,26 @@ def guess_title(text: str, rss_title: str) -> str:
     return ""
 
 
-def make_summary(text: str, max_length: int = 350) -> str:
-    lines = []
+def make_summary(text: str, max_length: int = 220) -> str:
+    cleaned = clean_text(text)
 
-    for line in text.splitlines():
-        line = line.strip()
+    if not cleaned:
+        return ""
 
-        if not line:
-            continue
+    # Remove page marker if present.
+    cleaned = cleaned.replace("--- Page 1 ---", "").strip()
 
-        if line.lower().startswith("--- page"):
-            continue
+    # Prefer the beginning as a quick preview.
+    summary = cleaned[:max_length].strip()
 
-        lines.append(line)
+    # Avoid cutting in the middle of a word if possible.
+    if len(cleaned) > max_length:
+        last_space = summary.rfind(" ")
+        if last_space > 120:
+            summary = summary[:last_space]
+        summary += "..."
 
-    one_line = " ".join(lines)
-    one_line = re.sub(r"\s+", " ", one_line)
-
-    return one_line[:max_length]
+    return summary
 
 
 def make_public_note(deadline: str, email: str, text: str) -> str:
@@ -189,7 +191,7 @@ def make_hyperlink(url: str, label: str) -> str:
     safe_url = url.replace('"', '""')
     safe_label = label.replace('"', '""')
 
-    return f'=HYPERLINK("{safe_url}", "{safe_label}")'
+    return f'=HYPERLINK("{safe_url}","{safe_label}")'
 
 def parse_metadata_row(row: dict) -> dict:
     text_file = row.get("text_file", "")
@@ -219,7 +221,7 @@ def parse_metadata_row(row: dict) -> dict:
         "Status": get_opportunity_status(deadline),
         "Contact": email,
         "Published": row.get("published", ""),
-        "Source Page": make_hyperlink(source_page_url, "Open source page"),
+        "Source Page": make_hyperlink(source_page_url, "UDE source"),
         "PDF": make_hyperlink(pdf_url, "Open PDF"),
         "Note": make_public_note(deadline, email, text),
         "Summary": make_summary(text),
