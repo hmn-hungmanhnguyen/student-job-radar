@@ -26,3 +26,13 @@ RSS feed
 → Google Sheets publishing
 → scheduled GitHub Actions update
 ```
+## Current Status
+
+Version 1 is functional and publicly available.
+
+The ppeline currently supports the UDE SHK RSS feed and publishes extracted job information to a public Google Sheet. The sheet is updated automatically using GitHub Actions.
+
+Known limitations:
+- PDF text extraction may be imperfect.
+- Deadline extraction should be verified manually.
+- Only one source is currently supported.
